@@ -157,7 +157,7 @@ button{padding:12px 24px;font-size:16px;border:none;border-radius:4px;cursor:poi
 let ws;let audioContext;let processor;let globalStream;let isRecording=false;
 async function toggleRecording(){
 const btn=document.getElementById("recordBtn");
-if(!isRecording){ws=new WebSocket("ws://"+window.location.host+"/ws/audio");
+if(!isRecording){ws=new WebSocket((window.location.protocol==="https:"?"wss":"ws")+"://"+window.location.host+"/ws/audio");
 ws.onopen=()=>{document.getElementById("status").innerText="Status: Listening...";startAudioCapture();};
 ws.onmessage=(event)=>{const data=JSON.parse(event.data);if(data.status){document.getElementById("status").innerText="Status: "+data.status;}if(data.type==="TRANSCRIPT"){document.getElementById("transcript").innerText=data.text;}};
 ws.onclose=()=>{document.getElementById("status").innerText="Status: Disconnected";};
