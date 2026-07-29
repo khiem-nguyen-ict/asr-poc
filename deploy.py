@@ -1,8 +1,7 @@
 import modal
 import os
 
-project_root = os.path.dirname(os.path.abspath(__file__
-)
+project_root = os.path.dirname(os.path.abspath(__file__))
 
 image = (
     modal.Image.debian_slim()
