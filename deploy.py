@@ -1,4 +1,8 @@
 import modal
+import os
+
+project_root = os.path.dirname(os.path.abspath(__file__
+)
 
 image = (
     modal.Image.debian_slim()
@@ -17,8 +21,8 @@ image = (
         "pydantic",
         "websockets",
     )
-    .add_local_file("/Users/apple/SourceCode/asr-poc/server.py", remote_path="/root/server.py", copy=True)
-    .add_local_file("/Users/apple/SourceCode/asr-poc/index.html", remote_path="/root/index.html", copy=True)
+    .add_local_file(os.path.join(project_root, "server.py"), remote_path="/root/server.py", copy=True)
+    .add_local_file(os.path.join(project_root, "index.html"), remote_path="/root/index.html", copy=True)
 )
 
 app = modal.App("asr-poc")
