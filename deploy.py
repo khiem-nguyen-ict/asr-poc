@@ -17,11 +17,13 @@ image = (
         "pydantic",
         "websockets",
     )
+    .add_local_file("server.py", remote_path="/root/server.py")
+    .add_local_file("index.html", remote_path="/root/index.html")
 )
 
 app = modal.App("asr-poc")
 
-@app.function(gpu="t4", image=image, timeout=3600, mounts=[modal.Mount.from_local_dir(".", remote_path="/root")])
+@app.function(gpu="t4", image=image, timeout=3600)
 @modal.asgi_app()
 def serve():
     from server import app
