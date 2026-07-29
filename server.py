@@ -29,7 +29,7 @@ vad_model, utils = torch.hub.load(
 # Options: "tiny", "base", "small", "medium", "large-v3"
 # Use device="cuda" and compute_type="float16" if GPU is available
 print("Loading Faster-Whisper ASR...")
-asr_model = WhisperModel("large-v3", device="gpu", compute_type="float32")
+asr_model = WhisperModel("large-v3", device="cuda", compute_type="float32")
 
 # ==========================================
 # 2. PYDANTIC SCHEMAS FOR STRUCTURED ORDERING

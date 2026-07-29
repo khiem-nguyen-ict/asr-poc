@@ -4,5 +4,7 @@ uvicorn
 instructor
 ollama
 faster-whisper
+torch
+torchaudio
 pydantic
 websockets
