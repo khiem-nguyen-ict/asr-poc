@@ -35,8 +35,13 @@ def _load_module(name, path):
 @app.function(gpu="t4", image=image, timeout=3600)
 @modal.asgi_app()
 def serve():
-    import os
+    import os, sys
     root = os.path.dirname(os.path.abspath(__file__))
-    _load_module("server", os.path.join(root, "server.py"))
+    print(f"ROOT: {root}")
+    print(f"FILES: {os.listdir(root)}")
+    server_path = os.path.join(root, "server.py")
+    print(f"SERVER PATH: {server_path}")
+    print(f"EXISTS: {os.path.exists(server_path)}")
+    _load_module("server", server_path)
     import server
     return server.app
