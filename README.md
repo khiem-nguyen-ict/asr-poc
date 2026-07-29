@@ -7,7 +7,7 @@ A proof-of-concept real-time voice order system using local LLMs and speech reco
 The pipeline runs entirely locally:
 
 1. **VAD (Silero VAD)** — Detects speech start/end in 512-sample frames at 16 kHz
-2. **ASR (Faster-Whisper)** — Transcribes speech to text with menu-item vocabulary biasing via `initial_prompt`
+2. **ASR (Faster-Whisper)** — Transcribes speech to text with menu-item vocabulary biasing via `initial_prompt`. Uses `device="cuda"` (GPU) with `compute_type="float32"`.
 3. **NLU (Ollama + Instructor)** — Extracts structured JSON (`OrderPayload`) from the transcript using the `llama3.1` model
 
 All three stages run over a WebSocket connection (`/ws/audio`) with real-time status updates (`SPEAKING`, `PROCESSING`, `TRANSCRIPT`, `ORDER_RESULT`).
@@ -38,7 +38,30 @@ All three stages run over a WebSocket connection (`/ws/audio`) with real-time st
 
 The browser frontend (`index.html`) uses the Web Audio API and native WebSockets — no additional frontend dependencies.
 
-## Setup & Running
+## Cloud Deployment (Modal — Free GPU)
+
+The app can be deployed to Modal for free GPU testing. This uses a T4 GPU in Modal's cloud — no local GPU needed.
+
+### Prerequisites
+- Modal account: [modal.com](https://modal.com) (free signup)
+- Modal CLI installed: `pip3 install modal`
+
+### Deploy
+```bash
+modal token new          # authenticate once
+modal deploy deploy.py   # deploys to Modal's T4 GPU
+```
+
+This builds a container image, downloads the `large-v3` ASR model, and starts the FastAPI server on a public URL. The output will show the endpoint URL (e.g., `https://khiem-nguyen-ict--asr-poc-serve.modal.run`). Open that URL in your browser to test.
+
+### What Modal deploys
+- Image built from `deploy.py` (installation instructions are inside it)
+- GPU: T4 (CUDA 12.4)
+- Server starts on port 8000, exposed as the Modal endpoint URL
+- The `large-v3` model is cached in the container image
+- First cold start takes ~30 seconds; subsequent calls are fast
+
+## Setup & Running (Local)
 
 ### Prerequisites
 - Homebrew (for `ollama` and `python@3.12`)
@@ -56,10 +79,11 @@ ollama pull llama3.1
 python3 -m venv .venv
 source .venv/bin/activate
 
-# Install dependencies
-pip install "numpy<2" fastapi uvicorn instructor ollama faster-whisper torch pydantic websockets torchaudio
+# Install dependencies (torch + torchaudio from PyTorch CUDA index for T4 GPU)
+pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu124
+pip install -r requirements.txt
 
-# Set macOS OpenMP workaround (needed to prevent SIGSEGV crashes)
+# macOS only: set OpenMP workaround (prevents SIGSEGV crashes)
 export KMP_DUPLICATE_LIB_OK=TRUE
 export OMP_NUM_THREADS=1
 
