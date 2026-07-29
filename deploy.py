@@ -4,8 +4,8 @@ image = (
     modal.Image.debian_slim()
     .apt_install("ffmpeg")
     .pip_install(
-        "--index-url", "https://download.pytorch.org/whl/cu124",
         "torch", "torchaudio",
+        extra_options=["--index-url", "https://download.pytorch.org/whl/cu124"],
     )
     .pip_install(
         "numpy<2",
