@@ -1,0 +1,10 @@
+numpy<2
+fastapi
+uvicorn
+instructor
+ollama
+faster-whisper
+torch
+torchaudio
+pydantic
+websockets

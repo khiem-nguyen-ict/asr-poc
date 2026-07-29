@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Voice Order POC</title>
+    <style>
+        body { font-family: sans-serif; margin: 40px; background: #f4f6f8; }
+        .card { background: white; padding: 24px; border-radius: 8px; max-width: 600px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        button { padding: 12px 24px; font-size: 16px; border: none; border-radius: 4px; cursor: pointer; }
+        .start { background: #10b981; color: white; }
+        .stop { background: #ef4444; color: white; }
+        pre { background: #1e293b; color: #38bdf8; padding: 16px; border-radius: 6px; overflow-x: auto; }
+        .status { margin-top: 10px; font-weight: bold; color: #64748b; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>High-Precision Voice Order (Backend STT)</h2>
+    <p>Try saying: <i>"Can I get two hot matcha lattes with oat milk and extra boba?"</i></p>
+    
+    <button id="recordBtn" class="start" onclick="toggleRecording()">Start Speaking</button>
+    
+    <div id="status" class="status">Status: Disconnected</div>
+
+    <h3>1. Transcribed Speech (ASR):</h3>
+    <div id="transcript" style="font-size: 18px; font-weight: 500; color: #1e293b;">-</div>
+</div>
+
+<script>
+    let ws;
+    let audioContext;
+    let processor;
+    let globalStream;
+    let isRecording = false;
+
+    async function toggleRecording() {
+        const btn = document.getElementById("recordBtn");
+        
+        if (!isRecording) {
+            // 1. Establish WebSocket
+            ws = new WebSocket("ws://" + window.location.host + "/ws/audio");
+
+            ws.onopen = () => {
+                document.getElementById("status").innerText = "Status: Listening...";
+                startAudioCapture();
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                
+                if (data.status) {
+                    document.getElementById("status").innerText = "Status: " + data.status;
+                }
+                if (data.type === "TRANSCRIPT") {
+                    document.getElementById("transcript").innerText = data.text;
+                }
+                
+            };
+
+            ws.onclose = () => {
+                document.getElementById("status").innerText = "Status: Disconnected";
+            };
+
+            btn.innerText = "Stop";
+            btn.className = "stop";
+            isRecording = true;
+
+        } else {
+            stopAudioCapture();
+            if (ws) ws.close();
+            btn.innerText = "Start Speaking";
+            btn.className = "start";
+            isRecording = false;
+        }
+    }
+
+    async function startAudioCapture() {
+        // Request Microphone Access
+        globalStream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+            video: false
+        });
+        
+        // Sample rate = 16000Hz expected by Silero VAD / Faster-Whisper
+        audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+        const source = audioContext.createMediaStreamSource(globalStream);
+
+        // Process PCM buffer chunks
+        processor = audioContext.createScriptProcessor(2048, 1, 1);
+
+        processor.onaudioprocess = (e) => {
+            if (!isRecording || ws.readyState !== WebSocket.OPEN) return;
+
+            const inputData = e.inputBuffer.getChannelData(0);
+            
+            // Convert Float32Array [-1.0, 1.0] to Int16 PCM Bytes
+            const pcm16 = new Int16Array(inputData.length);
+            for (let i = 0; i < inputData.length; i++) {
+                let s = Math.max(-1, Math.min(1, inputData[i]));
+                pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            }
+            
+            // Send PCM audio bytes to WebSocket server
+            ws.send(pcm16.buffer);
+        };
+
+        source.connect(processor);
+        processor.connect(audioContext.destination);
+    }
+
+    function stopAudioCapture() {
+        if (processor) processor.disconnect();
+        if (audioContext) audioContext.close();
+        if (globalStream) globalStream.getTracks().forEach(track => track.stop());
+    }
+</script>
+
+</body>
+</html>
