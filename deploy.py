@@ -21,7 +21,7 @@ image = (
 
 app = modal.App("asr-poc")
 
-@app.function(gpu="t4", image=image, timeout=3600)
+@app.function(gpu="t4", image=image, timeout=3600, mounts=[modal.Mount.from_local_dir(".", remote_path="/root")])
 @modal.asgi_app()
 def serve():
     from server import app
